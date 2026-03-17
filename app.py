@@ -29,15 +29,45 @@ def get_markets():
                 if not title: continue
 
                 # 2. 【死磕图片相关性】
-                # 严格按照：icon(头像) -> outcomes[0].image -> image 的顺序
-                img = m.get('icon') 
-                if not img or 'placeholder' in img:
-                    if m.get('outcomes'):
-                        img = m.get('outcomes')[0].get('image')
-                if not img:
-                    img = m.get('image')
-                if not img:
+                # 严格按照：icon(头像) > outcomes[0].image > conditionId_image > image 的顺序
+                img = None
+                
+                # 优先级1：icon（最高）
+                if m.get('icon') and 'placeholder' not in m.get('icon'):
+                    img = m.get('icon')
+                
+                # 优先级1.5：尝试从 events 字段获取更具体的图标
+                if not img and m.get('events'):
+                    events = m.get('events')
+                    if isinstance(events, list) and len(events) > 0:
+                        event = events[0]
+                        if event.get('icon') and 'placeholder' not in event.get('icon'):
+                            img = event.get('icon')
+                
+                # 优先级2：outcomes[0].image
+                if not img and m.get('outcomes'):
+                    outcomes = m.get('outcomes')
+                    # 处理 outcomes 可能是字符串的情况
+                    if isinstance(outcomes, str):
+                        try:
+                            import json
+                            outcomes = json.loads(outcomes)
+                        except:
+                            pass
+                    if isinstance(outcomes, list) and len(outcomes) > 0:
+                        if isinstance(outcomes[0], dict) and outcomes[0].get('image'):
+                            img = outcomes[0].get('image')
+                
+                # 优先级3：conditionId_image
+                if not img and m.get('conditionId_image'):
                     img = m.get('conditionId_image')
+                
+                # 优先级4：image（最后兜底，只有当上述三个字段全部为空时才使用）
+                if not img and m.get('image'):
+                    img = m.get('image')
+                
+                # 打印图片链接以便调试
+                print(f"Title: {title} | Image URL: {img}")
 
                 # 3. 【死磕 0.5 小数】
                 p_yes = 0.5
