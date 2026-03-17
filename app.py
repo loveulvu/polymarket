@@ -1,13 +1,74 @@
 from flask import Flask, jsonify
 import requests
+import re
 from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
 
+# 关键词到图片 URL 的映射库
+KEYWORD_IMAGE_MAP = {
+    # 人物相关
+    'Trump': 'https://images.unsplash.com/photo-1617791160505-6f00504e3519?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+    'Harvey Weinstein': 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+    'BitBoy': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+    'Rihanna': 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+    'Playboi Carti': 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+    'Jesus Christ': 'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+    
+    # 事件相关
+    'GTA': 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+    'Bitcoin': 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+    'FIFA': 'https://images.unsplash.com/photo-1471107340929-a87cd0f5b5f3?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+    'World Cup': 'https://images.unsplash.com/photo-1471107340929-a87cd0f5b5f3?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+    'Stanley Cup': 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+    'NHL': 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+    
+    # 主题相关
+    'Prison': 'https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+    'Election': 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+    'War': 'https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+    'Ceasefire': 'https://images.unsplash.com/photo-1486572788966-cfd3df1f5b42?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+    'China': 'https://images.unsplash.com/photo-1546436836-07a91091f160?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+    'Taiwan': 'https://images.unsplash.com/photo-1585287391076-08b8f642b30a?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+    'OpenAI': 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+    'Hardware': 'https://images.unsplash.com/photo-1593642532973-d31b6557fa68?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+}
+
+# 辅助函数：提取标题中的前两个名词
+def extract_nouns(title):
+    # 简单的名词提取逻辑，实际项目中可以使用更复杂的 NLP 库
+    # 这里使用正则表达式提取可能的名词
+    words = re.findall(r'\b[A-Z][a-z]+\b', title)
+    # 过滤掉常见的非名词词汇
+    stop_words = {'Will', 'Before', 'After', 'The', 'A', 'An', 'Is', 'Are', 'Was', 'Were', 'Be', 'Been', 'Being'}
+    nouns = [word for word in words if word not in stop_words]
+    return nouns[:2]
+
 @app.route('/api/markets')
 def get_markets():
     try:
+        # 备选方案：先从 events 接口获取数据，用于匹配更具体的图标
+        events_data = {}
+        try:
+            events_url = "https://gamma-api.polymarket.com/events?limit=30&active=true"
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+            }
+            print("开始获取 events 数据...")
+            events_resp = requests.get(events_url, headers=headers, timeout=10)
+            events_resp.raise_for_status()
+            events_list = events_resp.json()
+            print(f"获取到 {len(events_list)} 条 events 数据")
+            
+            # 构建 events 映射，用于后续匹配
+            for event in events_list:
+                event_id = event.get('id')
+                if event_id:
+                    events_data[event_id] = event
+        except Exception as e:
+            print(f"获取 events 数据失败: {e}")
+        
         # 使用 Gamma API 的搜索接口，这个接口的数据最全，图片最稳
         url = "https://gamma-api.polymarket.com/markets?limit=50&active=true&closed=false"
         headers = {
@@ -29,20 +90,34 @@ def get_markets():
                 if not title: continue
 
                 # 2. 【死磕图片相关性】
-                # 严格按照：icon(头像) > outcomes[0].image > conditionId_image > image 的顺序
+                # 严格按照：event.icon/event.image > icon(头像) > outcomes[0].image > conditionId_image > image 的顺序
                 img = None
                 
-                # 优先级1：icon（最高）
-                if m.get('icon') and 'placeholder' not in m.get('icon'):
-                    img = m.get('icon')
+                # 优先级0：event 对象（最高，真正相关的头像）
+                if m.get('event'):
+                    event = m.get('event')
+                    if isinstance(event, dict):
+                        # 优先取 event.icon
+                        if event.get('icon') and 'placeholder' not in event.get('icon') and 'category' not in event.get('icon') and 'default' not in event.get('icon'):
+                            img = event.get('icon')
+                        # 其次取 event.image
+                        elif event.get('image') and 'placeholder' not in event.get('image') and 'category' not in event.get('image') and 'default' not in event.get('image'):
+                            img = event.get('image')
+                
+                # 优先级1：icon（头像）
+                if not img and m.get('icon'):
+                    if 'placeholder' not in m.get('icon') and 'category' not in m.get('icon') and 'default' not in m.get('icon'):
+                        img = m.get('icon')
                 
                 # 优先级1.5：尝试从 events 字段获取更具体的图标
                 if not img and m.get('events'):
                     events = m.get('events')
                     if isinstance(events, list) and len(events) > 0:
                         event = events[0]
-                        if event.get('icon') and 'placeholder' not in event.get('icon'):
+                        if event.get('icon') and 'placeholder' not in event.get('icon') and 'category' not in event.get('icon') and 'default' not in event.get('icon'):
                             img = event.get('icon')
+                        elif event.get('image') and 'placeholder' not in event.get('image') and 'category' not in event.get('image') and 'default' not in event.get('image'):
+                            img = event.get('image')
                 
                 # 优先级2：outcomes[0].image
                 if not img and m.get('outcomes'):
@@ -56,18 +131,57 @@ def get_markets():
                             pass
                     if isinstance(outcomes, list) and len(outcomes) > 0:
                         if isinstance(outcomes[0], dict) and outcomes[0].get('image'):
-                            img = outcomes[0].get('image')
+                            if 'placeholder' not in outcomes[0].get('image') and 'category' not in outcomes[0].get('image') and 'default' not in outcomes[0].get('image'):
+                                img = outcomes[0].get('image')
                 
                 # 优先级3：conditionId_image
                 if not img and m.get('conditionId_image'):
-                    img = m.get('conditionId_image')
+                    if 'placeholder' not in m.get('conditionId_image') and 'category' not in m.get('conditionId_image') and 'default' not in m.get('conditionId_image'):
+                        img = m.get('conditionId_image')
                 
                 # 优先级4：image（最后兜底，只有当上述三个字段全部为空时才使用）
                 if not img and m.get('image'):
-                    img = m.get('image')
+                    if 'placeholder' not in m.get('image') and 'category' not in m.get('image') and 'default' not in m.get('image'):
+                        img = m.get('image')
+                
+                # 优先级5：从 events_data 中匹配更具体的图标（备选方案）
+                if not img:
+                    # 尝试通过 eventId 匹配 events_data
+                    event_id = m.get('eventId') or m.get('groupId')
+                    if event_id and event_id in events_data:
+                        event = events_data[event_id]
+                        if event.get('icon') and 'placeholder' not in event.get('icon') and 'category' not in event.get('icon') and 'default' not in event.get('icon'):
+                            img = event.get('icon')
+                            print(f"从 events_data 匹配到图标: {img}")
+                        elif event.get('image') and 'placeholder' not in event.get('image') and 'category' not in event.get('image') and 'default' not in event.get('image'):
+                            img = event.get('image')
+                            print(f"从 events_data 匹配到图片: {img}")
                 
                 # 打印图片链接以便调试
                 print(f"Title: {title} | Image URL: {img}")
+                # 检查图片链接是否包含不相关的关键词
+                if img and ('category' in img or 'default' in img):
+                    print(f"警告：图片链接可能包含不相关内容: {img}")
+                
+                # 【关键词映射方案】
+                # 1. 检查标题是否包含预设关键词
+                keyword_matched = False
+                for keyword, image_url in KEYWORD_IMAGE_MAP.items():
+                    if keyword.lower() in title.lower():
+                        img = image_url
+                        print(f"关键词匹配: {keyword} -> {image_url}")
+                        keyword_matched = True
+                        break
+                
+                # 2. 模糊搜索优化：如果没有匹配到预设关键词，使用 Unsplash API
+                if not keyword_matched:
+                    nouns = extract_nouns(title)
+                    if nouns:
+                        # 提取前两个名词作为关键词
+                        keywords = ' '.join(nouns)
+                        unsplash_url = f"https://source.unsplash.com/featured/?{keywords.replace(' ', '%20')}"
+                        img = unsplash_url
+                        print(f"模糊搜索: {keywords} -> {unsplash_url}")
 
                 # 3. 【死磕 0.5 小数】
                 p_yes = 0.5
