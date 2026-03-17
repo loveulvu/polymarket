@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>套利监控系统</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <section class="hero">
+        <canvas id="particle-canvas"></canvas>
+        <h1 class="card-title">Live Alpha</h1>
+        <a href="#" class="primary-btn" onclick="fetchAndRenderMarkets()">手动刷新数据</a>
+    </section>
+
+    <div class="content-section">
+        <div class="sort-controls">
+            <button class="sort-btn active" data-sort="arbitrage">套利空间优先 (价格和小)</button>
+            <button class="sort-btn" data-sort="volume">资金池优先 (成交量大)</button>
+        </div>
+        <div class="project-grid" id="market-grid"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

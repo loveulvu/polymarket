@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>盘口详情分析</title>
+    <style>
+        body { margin: 0; padding: 40px; background: #0a0a0a; color: #fff; font-family: 'Inter', sans-serif; }
+        .back-btn { display: inline-block; margin-bottom: 20px; color: #a259ff; text-decoration: none; font-weight: bold; }
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; max-width: 1200px; margin: 0 auto; }
+        .panel { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 30px; }
+        .cover-img { width: 100%; border-radius: 8px; margin-bottom: 20px; }
+        .title { font-size: 1.5rem; margin: 0 0 20px 0; line-height: 1.4; }
+        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .data-box { background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; border-left: 4px solid #4ade80; }
+        .data-box.no { border-color: #f87171; }
+        .data-box.neutral { border-color: #a259ff; }
+        .data-label { font-size: 0.8rem; color: #888; text-transform: uppercase; margin-bottom: 5px; }
+        .data-value { font-size: 1.5rem; font-weight: bold; font-family: monospace; }
+        .desc { font-size: 0.9rem; color: #bbb; line-height: 1.6; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div style="max-width: 1200px; margin: 0 auto;">
+        <a href="index.html" class="back-btn">← 返回监控大盘</a>
+        <div class="dashboard">
+            <div class="panel">
+                <img id="d-img" class="cover-img" src="">
+                <h1 id="d-title" class="title"></h1>
+                <div class="desc" id="d-desc"></div>
+            </div>
+            <div class="panel">
+                <h3>盘口数据分析 (Live)</h3>
+                <div class="data-grid">
+                    <div class="data-box">
+                        <div class="data-label">Yes 价格</div>
+                        <div class="data-value" id="d-yes"></div>
+                    </div>
+                    <div class="data-box no">
+                        <div class="data-label">No 价格</div>
+                        <div class="data-value" id="d-no"></div>
+                    </div>
+                    <div class="data-box neutral">
+                        <div class="data-label">价格总合 (Arbitrage)</div>
+                        <div class="data-value" id="d-total"></div>
+                    </div>
+                    <div class="data-box neutral">
+                        <div class="data-label">资金池容量 (Pool)</div>
+                        <div class="data-value" id="d-pool"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        document.getElementById('d-title').innerText = params.get('title');
+        document.getElementById('d-img').src = params.get('img');
+        document.getElementById('d-yes').innerText = parseFloat(params.get('yes')).toFixed(3);
+        document.getElementById('d-no').innerText = parseFloat(params.get('no')).toFixed(3);
+        document.getElementById('d-total').innerText = parseFloat(params.get('total')).toFixed(4);
+        
+        // 格式化资金池金额
+        const poolVal = parseFloat(params.get('pool')) || 0;
+        document.getElementById('d-pool').innerText = "$" + poolVal.toLocaleString('en-US');
+        
+        let desc = params.get('desc');
+        document.getElementById('d-desc').innerHTML = (desc && desc !== 'undefined') ? desc : '该市场暂无详细规则描述。';
+    </script>
+</body>
+</html>
