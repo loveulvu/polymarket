@@ -30,12 +30,13 @@ let targetColor = { r: 255, g: 255, b: 255 };
 let lastScrollY = window.scrollY;
 let cachedGridRect = null;
 
-// 新增：数据管理变量
+// 数据管理变量
 let globalMarkets = [];
-let currentSortMode = 'arbitrage'; 
+let currentSortMode = 'arbitrage';
 
 const canvas = document.getElementById('particle-canvas');
 const ctx = canvas.getContext('2d');
+const grid = document.getElementById('market-grid');
 
 // --- 核心逻辑：粒子引擎 ---
 
@@ -189,110 +190,110 @@ function animate() {
 }
 
 // --- 数据渲染与交互逻辑 ---
+
 async function fetchAndRenderMarkets() {
     try {
-        // 确保地址与后端一致
         const response = await fetch('http://127.0.0.1:5000/api/markets');
         const data = await response.json();
-        
-        // 核心修改：直接赋值，不再检查 length，不再使用模拟数据
-        globalMarkets = data; 
-        
-        if (globalMarkets.length === 0) {
-            console.warn("后端返回了 0 条真实数据，请检查网络是否能访问 Polymarket");
+
+        if (data.error) {
+            console.error("后端返回错误:", data.error);
+            globalMarkets = [];
+        } else if (Array.isArray(data)) {
+            globalMarkets = data;
+        } else {
+            console.error("后端返回格式错误:", data);
+            globalMarkets = [];
         }
-        
+
+        if (globalMarkets.length === 0) {
+            console.warn("后端返回了 0 条数据，请检查网络或后端日志。");
+        }
+
         renderGrid();
     } catch (e) {
         console.error("请求后端失败:", e);
-        // 即使报错也不加载模拟数据，保持页面真实
         globalMarkets = [];
         renderGrid();
     }
 }
+
+// 采用 DocumentFragment 优化渲染性能
 function renderGrid() {
-    const grid = document.getElementById('market-grid');
     if (!grid) return;
-    grid.innerHTML = ''; 
 
     let sortedData = [...globalMarkets];
-    // 排序逻辑
     if (currentSortMode === 'arbitrage') {
         sortedData.sort((a, b) => (a.total || 999) - (b.total || 999));
     } else if (currentSortMode === 'volume') {
         sortedData.sort((a, b) => b.pool - a.pool);
     }
 
+    const fragment = document.createDocumentFragment();
+
     sortedData.forEach(m => {
         const card = document.createElement('a');
-        const detailUrl = `detail.html?title=${encodeURIComponent(m.title)}&yes=${m.yes}&no=${m.no}&img=${encodeURIComponent(m.image)}&pool=${m.pool}&total=${m.total}&desc=${encodeURIComponent(m.description)}`;
+
+        const detailUrl = `detail.html?id=${encodeURIComponent(m.id || '')}&title=${encodeURIComponent(m.title || '')}&yes=${encodeURIComponent(m.yes || 0)}&no=${encodeURIComponent(m.no || 0)}&img=${encodeURIComponent(m.image || '')}&pool=${encodeURIComponent(m.pool || 0)}&total=${encodeURIComponent(m.total || 0)}&desc=${encodeURIComponent(m.description || '')}&status=${encodeURIComponent(m.status || '')}&resolution=${encodeURIComponent(m.resolution || '')}`;
+
         card.href = detailUrl;
-        
-        // 强制显示：直接注入类名和内联样式，确保万无一失
-        card.className = 'project-card show'; 
+
+        card.className = 'project-card show';
         card.style.opacity = '1';
         card.style.transform = 'translateY(0)';
         card.style.display = 'block';
-        
+
         const yesPrice = parseFloat(m.yes) || 0;
         const noPrice = parseFloat(m.no) || 0;
         const theme = m.total < 1.0 ? '#4ade80' : '#a259ff';
         card.style.setProperty('--theme', theme);
-card.innerHTML = `
-    <div style="height:180px; width:100%; background:#000; display:flex; align-items:center; justify-content:center;">
-        <img src="${m.image}" style="max-width:100%; max-height:100%; object-fit:contain;">
-    </div>
-    <div style="padding:15px; background:#1a1a1a;">
-        <h3 style="font-size:0.9rem; color:#fff; height:40px; overflow:hidden; margin-bottom:10px;">${m.title}</h3>
-        <div style="display:flex; justify-content:space-between; font-weight:bold;">
-            <span style="color:#4ade80;">YES: ${(yesPrice * 100).toFixed(1)}%</span>
-            <span style="color:#f87171;">NO: ${(noPrice * 100).toFixed(1)}%</span>
-        </div>
-        <div style="font-size:0.7rem; color:#666; margin-top:8px;">
-            VOL: $${Math.round(m.pool).toLocaleString()}
-        </div>
-    </div>
-`;
-        grid.appendChild(card);
+
+        card.innerHTML = `
+            <div style="height:180px; width:100%; background:#000; display:flex; align-items:center; justify-content:center;">
+                <img src="${m.image || ''}" style="max-width:100%; max-height:100%; object-fit:contain;" alt="market">
+            </div>
+            <div style="padding:15px; background:#1a1a1a;">
+                <h3 style="font-size:0.9rem; color:#fff; height:40px; overflow:hidden; margin-bottom:10px;">${m.title}</h3>
+                <div style="display:flex; justify-content:space-between; font-weight:bold;">
+                    <span style="color:#4ade80;">YES: ${(yesPrice * 100).toFixed(1)}%</span>
+                    <span style="color:#f87171;">NO: ${(noPrice * 100).toFixed(1)}%</span>
+                </div>
+                <div style="font-size:0.7rem; color:#666; margin-top:8px;">
+                    VOL: $${Math.round(m.pool).toLocaleString()}
+                </div>
+            </div>
+        `;
+        fragment.appendChild(card);
     });
 
-    // 关键：通知粒子引擎重新计算避让位置
-    setTimeout(() => {
-        updateGridRectCache();
-        setupProjectCards(); // 重新绑定悬停变色效果
-    }, 100);
+    grid.innerHTML = '';
+    grid.appendChild(fragment);
+
+    updateGridRectCache();
 }
 
-  
-    
-function setupProjectCards() {
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('show');
-                observer.unobserve(entry.target);
-            }
-        }); 
-    }, { threshold: 0.1 });
+// 采用事件委托，避免内存泄漏
+function setupEventDelegation() {
+    if (!grid) return;
 
-    document.querySelectorAll('.project-card:not(.show), .primary-btn, .sort-btn').forEach((el) => {
-        observer.observe(el);
-    });
-
-    // 悬停变色逻辑 - 联动粒子
-    document.querySelectorAll('.project-card').forEach((card) => {
-        card.addEventListener('mouseenter', function () {
-            const themeColor = getComputedStyle(this).getPropertyValue('--theme').trim();
+    grid.addEventListener('mouseover', (e) => {
+        const card = e.target.closest('.project-card');
+        if (card) {
+            const themeColor = getComputedStyle(card).getPropertyValue('--theme').trim();
             if (themeColor.startsWith('#')) {
                 const r = parseInt(themeColor.slice(1, 3), 16);
                 const g = parseInt(themeColor.slice(3, 5), 16);
                 const b = parseInt(themeColor.slice(5, 7), 16);
                 targetColor = { r, g, b };
             }
-        });
-        card.addEventListener('mouseleave', () => {
+        }
+    });
+
+    grid.addEventListener('mouseout', (e) => {
+        const card = e.target.closest('.project-card');
+        if (card) {
             targetColor = { r: 255, g: 255, b: 255 };
-        });
+        }
     });
 }
 
@@ -305,7 +306,6 @@ function setupEventListeners() {
     window.addEventListener('resize', init);
     window.addEventListener('scroll', updateGridRectCache, { passive: true });
 
-    // 绑定排序按钮逻辑
     document.querySelectorAll('.sort-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
@@ -316,11 +316,11 @@ function setupEventListeners() {
     });
 }
 
-// 统一启动入口
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
+    setupEventDelegation();
     init();
     animate();
     fetchAndRenderMarkets();
-    setInterval(fetchAndRenderMarkets, 60000); // 每一分钟自动静默刷新
+    setInterval(fetchAndRenderMarkets, 60000);
 });

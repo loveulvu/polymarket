@@ -2,70 +2,481 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>盘口详情分析</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Detail</title>
     <style>
-        body { margin: 0; padding: 40px; background: #0a0a0a; color: #fff; font-family: 'Inter', sans-serif; }
-        .back-btn { display: inline-block; margin-bottom: 20px; color: #a259ff; text-decoration: none; font-weight: bold; }
-        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; max-width: 1200px; margin: 0 auto; }
-        .panel { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 30px; }
-        .cover-img { width: 100%; border-radius: 8px; margin-bottom: 20px; }
-        .title { font-size: 1.5rem; margin: 0 0 20px 0; line-height: 1.4; }
-        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
-        .data-box { background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; border-left: 4px solid #4ade80; }
-        .data-box.no { border-color: #f87171; }
-        .data-box.neutral { border-color: #a259ff; }
-        .data-label { font-size: 0.8rem; color: #888; text-transform: uppercase; margin-bottom: 5px; }
-        .data-value { font-size: 1.5rem; font-weight: bold; font-family: monospace; }
-        .desc { font-size: 0.9rem; color: #bbb; line-height: 1.6; margin-top: 20px; }
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 20px 60px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 24px;
+            color: #aaa;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back-link:hover {
+            color: #fff;
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 28px;
+            align-items: start;
+        }
+
+        .image-wrap {
+            width: 100%;
+            background: #111;
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid #1f1f1f;
+        }
+
+        .image-wrap img {
+            width: 100%;
+            height: 100%;
+            max-height: 360px;
+            object-fit: contain;
+            display: block;
+            background: #000;
+        }
+
+        .info-panel {
+            background: #0d0d0d;
+            border: 1px solid #1c1c1c;
+            border-radius: 18px;
+            padding: 24px;
+        }
+
+        .title {
+            font-size: 2rem;
+            line-height: 1.25;
+            margin: 0 0 16px;
+            color: #fff;
+        }
+
+        .status {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            font-weight: bold;
+            font-size: 14px;
+            background: rgba(74, 222, 128, 0.12);
+            color: #4ade80;
+            border: 1px solid rgba(74, 222, 128, 0.35);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(120px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: #141414;
+            border: 1px solid #202020;
+            border-radius: 14px;
+            padding: 16px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #8a8a8a;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .yes {
+            color: #4ade80;
+        }
+
+        .no {
+            color: #f87171;
+        }
+
+        .desc-box,
+        .chart-box {
+            margin-top: 28px;
+            background: #0d0d0d;
+            border: 1px solid #1c1c1c;
+            border-radius: 18px;
+            padding: 24px;
+        }
+
+        .section-title {
+            margin: 0 0 16px;
+            font-size: 1.1rem;
+            color: #fff;
+        }
+
+        .description {
+            color: #cfcfcf;
+            font-size: 15px;
+            line-height: 1.75;
+            white-space: pre-wrap;
+        }
+
+        .chart-toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .range-btn {
+            background: #111;
+            color: #aaa;
+            border: 1px solid #2a2a2a;
+            padding: 8px 14px;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .range-btn:hover {
+            color: #fff;
+            border-color: #4ade80;
+        }
+
+        .range-btn.active {
+            background: rgba(74, 222, 128, 0.12);
+            color: #4ade80;
+            border-color: rgba(74, 222, 128, 0.4);
+        }
+
+        .chart-empty {
+            display: none;
+            color: #8a8a8a;
+            margin-top: 12px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 900px) {
+            .hero {
+                grid-template-columns: 1fr;
+            }
+
+            .title {
+                font-size: 1.5rem;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
-    <div style="max-width: 1200px; margin: 0 auto;">
-        <a href="index.html" class="back-btn">← 返回监控大盘</a>
-        <div class="dashboard">
-            <div class="panel">
-                <img id="d-img" class="cover-img" src="">
-                <h1 id="d-title" class="title"></h1>
-                <div class="desc" id="d-desc"></div>
+    <div class="container">
+        <a class="back-link" href="index.html">← 返回主页</a>
+
+        <div class="hero">
+            <div class="image-wrap">
+                <img id="detail-image" src="" alt="market image">
             </div>
-            <div class="panel">
-                <h3>盘口数据分析 (Live)</h3>
-                <div class="data-grid">
-                    <div class="data-box">
-                        <div class="data-label">Yes 价格</div>
-                        <div class="data-value" id="d-yes"></div>
+
+            <div class="info-panel">
+                <h1 id="detail-title" class="title">Loading...</h1>
+                <div id="market-status" class="status">进行中</div>
+
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-label">YES</div>
+                        <div id="detail-yes" class="stat-value yes">0.0%</div>
                     </div>
-                    <div class="data-box no">
-                        <div class="data-label">No 价格</div>
-                        <div class="data-value" id="d-no"></div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">NO</div>
+                        <div id="detail-no" class="stat-value no">0.0%</div>
                     </div>
-                    <div class="data-box neutral">
-                        <div class="data-label">价格总合 (Arbitrage)</div>
-                        <div class="data-value" id="d-total"></div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">VOLUME</div>
+                        <div id="detail-pool" class="stat-value">$0</div>
                     </div>
-                    <div class="data-box neutral">
-                        <div class="data-label">资金池容量 (Pool)</div>
-                        <div class="data-value" id="d-pool"></div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">TOTAL</div>
+                        <div id="detail-total" class="stat-value">0.000</div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <div class="chart-box">
+            <h2 class="section-title">YES Price History</h2>
+
+            <div class="chart-toolbar">
+                <button class="range-btn active" data-range="24">24H</button>
+                <button class="range-btn" data-range="72">72H</button>
+            </div>
+
+            <canvas id="priceChart" height="110"></canvas>
+            <div id="chart-empty" class="chart-empty">历史数据不足，暂时无法绘制完整曲线。</div>
+        </div>
+
+        <div class="desc-box">
+            <h2 class="section-title">Description</h2>
+            <div id="detail-desc" class="description"></div>
+        </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        const params = new URLSearchParams(window.location.search);
-        document.getElementById('d-title').innerText = params.get('title');
-        document.getElementById('d-img').src = params.get('img');
-        document.getElementById('d-yes').innerText = parseFloat(params.get('yes')).toFixed(3);
-        document.getElementById('d-no').innerText = parseFloat(params.get('no')).toFixed(3);
-        document.getElementById('d-total').innerText = parseFloat(params.get('total')).toFixed(4);
-        
-        // 格式化资金池金额
-        const poolVal = parseFloat(params.get('pool')) || 0;
-        document.getElementById('d-pool').innerText = "$" + poolVal.toLocaleString('en-US');
-        
-        let desc = params.get('desc');
-        document.getElementById('d-desc').innerHTML = (desc && desc !== 'undefined') ? desc : '该市场暂无详细规则描述。';
+        let currentChart = null;
+        let currentMarketId = '';
+
+        function getQueryParam(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name) || '';
+        }
+
+        function decodeText(value) {
+            try {
+                return decodeURIComponent(value || '');
+            } catch (e) {
+                return value || '';
+            }
+        }
+
+        function formatPercent(value) {
+            const num = parseFloat(value || 0);
+            return (num * 100).toFixed(1) + '%';
+        }
+
+        function formatMoney(value) {
+            const num = parseFloat(value || 0);
+            return '$' + Math.round(num).toLocaleString();
+        }
+
+        function formatTotal(value) {
+            const num = parseFloat(value || 0);
+            return num.toFixed(3);
+        }
+
+        function setStatus(status, resolution) {
+            const el = document.getElementById('market-status');
+            if (!el) return;
+
+            if (status === 'closed') {
+                if (resolution === 'yes') {
+                    el.textContent = '最终结果：YES';
+                    el.style.color = '#4ade80';
+                    el.style.background = 'rgba(74, 222, 128, 0.12)';
+                    el.style.border = '1px solid rgba(74, 222, 128, 0.35)';
+                } else if (resolution === 'no') {
+                    el.textContent = '最终结果：NO';
+                    el.style.color = '#f87171';
+                    el.style.background = 'rgba(248, 113, 113, 0.12)';
+                    el.style.border = '1px solid rgba(248, 113, 113, 0.35)';
+                } else {
+                    el.textContent = '最终结果：已结束';
+                    el.style.color = '#ccc';
+                    el.style.background = 'rgba(200, 200, 200, 0.08)';
+                    el.style.border = '1px solid rgba(200, 200, 200, 0.2)';
+                }
+            } else {
+                el.textContent = '进行中';
+                el.style.color = '#4ade80';
+                el.style.background = 'rgba(74, 222, 128, 0.12)';
+                el.style.border = '1px solid rgba(74, 222, 128, 0.35)';
+            }
+        }
+
+        function setActiveRangeButton(rangeValue) {
+            document.querySelectorAll('.range-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.range === String(rangeValue));
+            });
+        }
+
+        async function loadHistoryChart(marketId, range = 24) {
+            const canvas = document.getElementById('priceChart');
+            const emptyEl = document.getElementById('chart-empty');
+
+            if (!canvas || !marketId) {
+                if (emptyEl) {
+                    emptyEl.style.display = 'block';
+                    emptyEl.textContent = '缺少市场 ID，无法加载历史图表。';
+                }
+                return;
+            }
+
+            if (currentChart) {
+                currentChart.destroy();
+                currentChart = null;
+            }
+
+            if (emptyEl) {
+                emptyEl.style.display = 'none';
+                emptyEl.textContent = '历史数据不足，暂时无法绘制完整曲线。';
+            }
+
+            try {
+                const response = await fetch(`http://127.0.0.1:5000/api/history/${encodeURIComponent(marketId)}?range=${range}`);
+                const data = await response.json();
+
+                if (!Array.isArray(data) || data.length === 0) {
+                    if (emptyEl) {
+                        emptyEl.style.display = 'block';
+                        emptyEl.textContent = `暂无最近 ${range} 小时历史数据。`;
+                    }
+                    return;
+                }
+
+                const labels = data.map(item => {
+                    const d = new Date((item.timestamp || 0) * 1000);
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    const hour = String(d.getHours()).padStart(2, '0');
+                    const minute = String(d.getMinutes()).padStart(2, '0');
+                    return `${month}-${day} ${hour}:${minute}`;
+                });
+
+                const prices = data.map(item => Number(item.price || 0));
+
+                if (prices.length < 2 && emptyEl) {
+                    emptyEl.style.display = 'block';
+                    emptyEl.textContent = `最近 ${range} 小时数据点较少，图表参考性有限。`;
+                }
+
+                currentChart = new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: `YES Price (${range}H)`,
+                            data: prices,
+                            borderColor: '#4ade80',
+                            backgroundColor: 'rgba(74, 222, 128, 0.12)',
+                            borderWidth: 2,
+                            tension: 0.35,
+                            fill: true,
+                            pointRadius: 2,
+                            pointHoverRadius: 4,
+                            pointBackgroundColor: '#4ade80',
+                            pointBorderColor: '#4ade80'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: '#ffffff'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: '#101010',
+                                titleColor: '#ffffff',
+                                bodyColor: '#dddddd',
+                                borderColor: '#2a2a2a',
+                                borderWidth: 1,
+                                callbacks: {
+                                    label: function(context) {
+                                        return ' YES: ' + (context.raw * 100).toFixed(2) + '%';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                ticks: {
+                                    color: '#999',
+                                    autoSkip: true,
+                                    maxTicksLimit: 8
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            },
+                            y: {
+                                min: 0,
+                                max: 1,
+                                ticks: {
+                                    color: '#999',
+                                    callback: function(value) {
+                                        return (value * 100).toFixed(0) + '%';
+                                    }
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error('加载历史图表失败:', e);
+                if (emptyEl) {
+                    emptyEl.style.display = 'block';
+                    emptyEl.textContent = '历史数据加载失败。';
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const id = getQueryParam('id');
+            const title = decodeText(getQueryParam('title'));
+            const yes = getQueryParam('yes');
+            const no = getQueryParam('no');
+            const img = decodeText(getQueryParam('img'));
+            const pool = getQueryParam('pool');
+            const total = getQueryParam('total');
+            const desc = decodeText(getQueryParam('desc'));
+            const status = getQueryParam('status');
+            const resolution = getQueryParam('resolution');
+
+            currentMarketId = id;
+
+            document.getElementById('detail-title').textContent = title || 'Untitled Market';
+            document.getElementById('detail-yes').textContent = formatPercent(yes);
+            document.getElementById('detail-no').textContent = formatPercent(no);
+            document.getElementById('detail-pool').textContent = formatMoney(pool);
+            document.getElementById('detail-total').textContent = formatTotal(total);
+            document.getElementById('detail-desc').textContent = desc || 'No description available.';
+            document.getElementById('detail-image').src = img || '';
+
+            setStatus(status, resolution);
+            loadHistoryChart(currentMarketId, 24);
+
+            document.querySelectorAll('.range-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const range = btn.dataset.range || '24';
+                    setActiveRangeButton(range);
+                    loadHistoryChart(currentMarketId, range);
+                });
+            });
+        });
     </script>
 </body>
 </html>
