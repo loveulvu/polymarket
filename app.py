@@ -9,13 +9,18 @@ app = Flask(__name__)
 CORS(app)
 
 session = requests.Session()
-cache = {"data": [], "timestamp": 0}
-CACHE_TTL = 30
+
+market_cache = {"data": [], "timestamp": 0}
+history_cache = {}
+
+MARKET_CACHE_TTL = 30
+HISTORY_CACHE_TTL = 120
+
 
 @app.route('/api/markets')
 def get_markets():
-    if time.time() - cache["timestamp"] < CACHE_TTL:
-        return jsonify(cache["data"])
+    if time.time() - market_cache["timestamp"] < MARKET_CACHE_TTL:
+        return jsonify(market_cache["data"])
 
     try:
         res = session.get(
@@ -27,6 +32,10 @@ def get_markets():
 
         markets = []
         for m in raw_data:
+            question = m.get("question", "").strip()
+            if not question:
+                continue
+
             tokens = m.get("tokens", [])
 
             yes_price = 0.0
@@ -56,41 +65,37 @@ def get_markets():
 
             yes_token_id = clob_token_ids[0] if len(clob_token_ids) > 0 else ""
             no_token_id = clob_token_ids[1] if len(clob_token_ids) > 1 else ""
-
-            resolution = "pending"
-            if m.get("closed"):
-                if yes_price > no_price:
-                    resolution = "yes"
-                elif no_price > yes_price:
-                    resolution = "no"
-                else:
-                    resolution = "closed"
+            if yes_price > 0 or no_price > 0:
+                diff = abs(yes_price - no_price)
 
             markets.append({
                 "id": yes_token_id,
                 "conditionId": m.get("conditionId", ""),
                 "yesTokenId": yes_token_id,
                 "noTokenId": no_token_id,
-                "title": m.get("question", "Unknown Market"),
+                "title": question,
                 "yes": yes_price,
                 "no": no_price,
                 "image": m.get("image", ""),
                 "pool": float(m.get("volumeNum", 0) or 0),
                 "total": yes_price + no_price,
                 "description": m.get("description", ""),
-                "status": "closed" if m.get("closed") else "active",
-                "resolution": resolution
+                "status": "active",
+                "resolution": "pending",
+                "active": True,
+                "closed": False,
+                "diff":diff
             })
 
-        cache["data"] = markets
-        cache["timestamp"] = time.time()
+        market_cache["data"] = markets
+        market_cache["timestamp"] = time.time()
         return jsonify(markets)
 
     except Exception as e:
         print(f"/api/markets 错误: {e}")
         traceback.print_exc()
-        if cache["data"]:
-            return jsonify(cache["data"])
+        if market_cache["data"]:
+            return jsonify(market_cache["data"])
         return jsonify({"error": str(e)}), 500
 
 
@@ -100,6 +105,14 @@ def get_history(token_id):
         range_hours = request.args.get("range", "24")
         if range_hours not in ["24", "72"]:
             range_hours = "24"
+
+        cache_key = f"{token_id}_{range_hours}"
+        now = time.time()
+
+        if cache_key in history_cache:
+            cached = history_cache[cache_key]
+            if now - cached["timestamp"] < HISTORY_CACHE_TTL:
+                return jsonify(cached["data"])
 
         fidelity = 24 if range_hours == "24" else 72
 
@@ -122,6 +135,11 @@ def get_history(token_id):
                     "timestamp": point.get("t", 0),
                     "price": float(point.get("p", 0) or 0)
                 })
+
+        history_cache[cache_key] = {
+            "data": history,
+            "timestamp": now
+        }
 
         return jsonify(history)
 

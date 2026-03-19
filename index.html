@@ -3,23 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>套利监控系统</title>
+    <title>Polymarket Dashboard</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <section class="hero">
-        <canvas id="particle-canvas"></canvas>
-        <h1 class="card-title">Live Alpha</h1>
-        <a href="#" class="primary-btn" onclick="fetchAndRenderMarkets()">手动刷新数据</a>
-    </section>
-
-    <div class="content-section">
-        <div class="sort-controls">
-            <button class="sort-btn active" data-sort="arbitrage">套利空间优先 (价格和小)</button>
-            <button class="sort-btn" data-sort="volume">资金池优先 (成交量大)</button>
-        </div>
-        <div class="project-grid" id="market-grid"></div>
+    <div class="toolbar" style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; margin:20px 0;">
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="sort-btn active" data-sort="arbitrage">Arbitrage</button>
+        <button class="sort-btn" data-sort="volume">Volume</button>
     </div>
+
+    <div style="flex:1; min-width:260px; max-width:420px; margin-left:auto;">
+        <input
+            id="market-search"
+            type="text"
+            placeholder="搜索市场标题..."
+            style="
+                width:100%;
+                padding:12px 16px;
+                border-radius:12px;
+                border:1px solid #2a2a2a;
+                background:#111;
+                color:#fff;
+                outline:none;
+                font-size:14px;
+            "
+        />
+    </div>
+</div>
+
+    <canvas id="particle-canvas"></canvas>
+
+    <main class="page-shell">
+        <section class="hero-section">
+            <h1 class="card-title">Polymarket Dashboard</h1>
+            <p class="hero-subtitle">Track live prediction markets, spot low-total opportunities, and inspect short-term YES price trends.</p>
+        </section>
+
+        <section class="toolbar-section">   
+            <div class="sort-group">
+                <button class="sort-btn active" data-sort="arbitrage">Low Total</button>
+                <button class="sort-btn" data-sort="volume">High Volume</button>
+            </div>
+        </section>
+
+        <section class="project-grid" id="market-grid"></section>
+    </main>
 
     <script src="script.js"></script>
 </body>

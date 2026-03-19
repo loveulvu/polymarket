@@ -33,6 +33,7 @@ let cachedGridRect = null;
 // 数据管理变量
 let globalMarkets = [];
 let currentSortMode = 'arbitrage';
+let searchKeyword = '';
 
 const canvas = document.getElementById('particle-canvas');
 const ctx = canvas.getContext('2d');
@@ -222,20 +223,27 @@ async function fetchAndRenderMarkets() {
 function renderGrid() {
     if (!grid) return;
 
-    let sortedData = [...globalMarkets];
+    let filteredData = [...globalMarkets];
+
+    if (searchKeyword.trim()) {
+        const keyword = searchKeyword.trim().toLowerCase();
+        filteredData = filteredData.filter(m =>
+            (m.title || '').toLowerCase().includes(keyword)
+        );
+    }
+
     if (currentSortMode === 'arbitrage') {
-        sortedData.sort((a, b) => (a.total || 999) - (b.total || 999));
+        filteredData.sort((a, b) => (a.total || 999) - (b.total || 999));
     } else if (currentSortMode === 'volume') {
-        sortedData.sort((a, b) => b.pool - a.pool);
+        filteredData.sort((a, b) => b.pool - a.pool);
     }
 
     const fragment = document.createDocumentFragment();
 
-    sortedData.forEach(m => {
+    filteredData.forEach(m => {
         const card = document.createElement('a');
 
         const detailUrl = `detail.html?id=${encodeURIComponent(m.id || '')}&title=${encodeURIComponent(m.title || '')}&yes=${encodeURIComponent(m.yes || 0)}&no=${encodeURIComponent(m.no || 0)}&img=${encodeURIComponent(m.image || '')}&pool=${encodeURIComponent(m.pool || 0)}&total=${encodeURIComponent(m.total || 0)}&desc=${encodeURIComponent(m.description || '')}&status=${encodeURIComponent(m.status || '')}&resolution=${encodeURIComponent(m.resolution || '')}`;
-
         card.href = detailUrl;
 
         card.className = 'project-card show';
@@ -261,13 +269,26 @@ function renderGrid() {
                 <div style="font-size:0.7rem; color:#666; margin-top:8px;">
                     VOL: $${Math.round(m.pool).toLocaleString()}
                 </div>
+                <div style="font-size:0.7rem; color:#a259ff; margin-top:4px; font-weight:bold;">
+                    DIFF: ${(m.diff * 100).toFixed(1)}%
+                </div>
             </div>
         `;
         fragment.appendChild(card);
     });
 
     grid.innerHTML = '';
-    grid.appendChild(fragment);
+
+    if (filteredData.length === 0) {
+        const empty = document.createElement('div');
+        empty.style.color = '#777';
+        empty.style.fontSize = '14px';
+        empty.style.padding = '20px 0';
+        empty.textContent = '没有找到匹配的市场';
+        grid.appendChild(empty);
+    } else {
+        grid.appendChild(fragment);
+    }
 
     updateGridRectCache();
 }
@@ -299,10 +320,13 @@ function setupEventDelegation() {
 
 function setupEventListeners() {
     window.addEventListener('mousemove', (e) => {
-        mouse.x = e.clientX; mouse.y = e.clientY;
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
         lastMouseMoveTime = performance.now();
-        lastRealMouse.x = e.clientX; lastRealMouse.y = e.clientY;
+        lastRealMouse.x = e.clientX;
+        lastRealMouse.y = e.clientY;
     });
+
     window.addEventListener('resize', init);
     window.addEventListener('scroll', updateGridRectCache, { passive: true });
 
@@ -314,6 +338,14 @@ function setupEventListeners() {
             renderGrid();
         });
     });
+
+    const searchInput = document.getElementById('market-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            searchKeyword = e.target.value || '';
+            renderGrid();
+        });
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
