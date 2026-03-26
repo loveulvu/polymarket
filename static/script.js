@@ -243,7 +243,7 @@ function renderGrid() {
     filteredData.forEach(m => {
         const card = document.createElement('a');
 
-        const detailUrl = `detail.html?id=${encodeURIComponent(m.id || '')}&title=${encodeURIComponent(m.title || '')}&yes=${encodeURIComponent(m.yes || 0)}&no=${encodeURIComponent(m.no || 0)}&img=${encodeURIComponent(m.image || '')}&pool=${encodeURIComponent(m.pool || 0)}&total=${encodeURIComponent(m.total || 0)}&desc=${encodeURIComponent(m.description || '')}&status=${encodeURIComponent(m.status || '')}&resolution=${encodeURIComponent(m.resolution || '')}`;
+        const detailUrl = `detail?id=${encodeURIComponent(m.id || '')}&title=${encodeURIComponent(m.title || '')}&yes=${encodeURIComponent(m.yes || 0)}&no=${encodeURIComponent(m.no || 0)}&img=${encodeURIComponent(m.image || '')}&pool=${encodeURIComponent(m.pool || 0)}&total=${encodeURIComponent(m.total || 0)}&desc=${encodeURIComponent(m.description || '')}&status=${encodeURIComponent(m.status || '')}&resolution=${encodeURIComponent(m.resolution || '')}`;
         card.href = detailUrl;
 
         card.className = 'project-card show';
