@@ -55,7 +55,7 @@ pip install flask flask-cors requests mysql-connector-python
 db_config = {
     'host': '127.0.0.1',
     'user': 'root',
-    'password': '200412',  # 修改为你的密码
+    'password': '****',  # 修改为你的密码
     'database': 'poly_data'
 }
 ```
